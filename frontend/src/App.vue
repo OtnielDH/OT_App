@@ -1,11 +1,16 @@
 <template>
   <nav>
+    <Sidebar />
     <router-link to="/">Home</router-link> |
     <router-link to="/about">About</router-link> |
     <router-link to="/OT">Overtime</router-link>
   </nav>
   <router-view />
 </template>
+
+<script setup>
+import Sidebar from './components/Sidebar.vue';
+</script>
 
 <style>
 #app {

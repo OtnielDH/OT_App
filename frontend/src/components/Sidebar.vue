@@ -45,5 +45,6 @@
             <CSidebarToggler />
         </CSidebarFooter>
     </CSidebar>
-
 </template>
+
+<style></style>
