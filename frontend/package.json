@@ -11,6 +11,7 @@
     "@coreui/icons": "^3.0.1",
     "@coreui/icons-vue": "^2.2.0",
     "@coreui/vue": "^5.4.1",
+    "@vuepic/vue-datepicker": "^10.0.0",
     "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "vue": "^3.2.13",
@@ -19,6 +20,8 @@
   },
   "devDependencies": {
     "@vue/cli-plugin-router": "~5.0.0",
-    "@vue/cli-service": "~5.0.0"
+    "@vue/cli-service": "~5.0.0",
+    "sass": "^1.83.0",
+    "sass-loader": "^16.0.4"
   }
 }

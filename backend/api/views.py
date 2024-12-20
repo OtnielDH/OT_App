@@ -1,9 +1,9 @@
 from django.shortcuts import render
+from rest_framework import viewsets, status
 from rest_framework.views import APIView
-from rest_framework import viewsets
 from rest_framework.response import Response
-from .models import Project, Employee
-from .serializers import ProjectSerializer, EmployeeSerializer
+from .models import Project, Employee, OvertimeRequest
+from .serializers import ProjectSerializer, EmployeeSerializer, OvertimeSerializer
 
 # Create your views here.
 
@@ -18,3 +18,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
+
+class OvertimeRequestViewSet(viewsets.ModelViewSet):
+    queryset = OvertimeRequest.objects.all()
+    serializer_class = OvertimeSerializer

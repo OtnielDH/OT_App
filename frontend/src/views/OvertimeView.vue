@@ -9,11 +9,11 @@
                             <label class="credentials">NAME</label>
                         </CCol>
                         <CCol xs="9">
-                            <CFormSelect class="text-center">
-                                <option value="">Otniel Dwimarti #1</option>
-                                <option value="">Otniel Dwimarti #2</option>
-                                <option value="">Otniel Dwimarti #3</option>
-                                <option value="">Otniel Dwimarti #4</option>
+                            <CFormSelect class="text-center" v-model="selectedEmployees">
+                                <option value="">Select Employees</option>
+                                <option v-for="employee in activeEmployees" :key="employee.id" :value="employee.id">
+                                    {{ employee.name }}
+                                </option>
                             </CFormSelect>
                         </CCol>
                     </CRow>
@@ -27,7 +27,7 @@
                             <label class="credentials">ID</label>
                         </CCol>
                         <CCol xs="9">
-                            <label class="credentials text-center d-block">MW2202033</label>
+                            <label class="credentials text-center d-block">{{ selectedEmployeeId }}</label>
                         </CCol>
                     </CRow>
                 </CCol>
@@ -40,11 +40,11 @@
                             <label class="credentials">PROJECT</label>
                         </CCol>
                         <CCol xs="9">
-                            <CFormSelect class="text-center">
-                                <option value="">PTB Project #1</option>
-                                <option value="">PTB Project #2</option>
-                                <option value="">PTB Project #3</option>
-                                <option value="">PTB Project #4</option>
+                            <CFormSelect class="text-center" v-model="selectedProjects">
+                                <option value="">Select Project</option>
+                                <option v-for="project in projects" :key="project.id" :value="project.id">
+                                    {{ project.name }}
+                                </option>
                             </CFormSelect>
                         </CCol>
                     </CRow>
@@ -55,7 +55,7 @@
                 <CCol xs="12" md="8">
                     <div class="form-section">
                         <label class="form-label">Select Date</label>
-                        <CFormInput type="date" class="custom-input date-input" />
+                        <CFormInput type="date" class="custom-input date-input" v-model="selectedDate"/>
                     </div>
                 </CCol>
             </CRow>
@@ -68,44 +68,82 @@
                                 <div class="time-block">
                                     <label class="form-label">Start of OT Hour</label>
                                     <div class="time-picker">
-                                        <CFormSelect v-model="selectedHourStart" class="clock-input mx-1">
-                                            <option value="">17</option>
-                                            <option v-for="hour in hours" :key="hour" :value="hour">
-                                                {{ hour.toString().padStart(2, '0') }}
-                                            </option>
-                                        </CFormSelect>
-                                        <span class="align-self-center">:</span>
-                                        <CFormSelect v-model="selectedMinuteStart" class="clock-input mx-1">
-                                            <option value="">20</option>
-                                            <option v-for="minute in minuteOptions" :key="minute" :value="minute">
-                                                {{ minute.toString().padStart(2, '0') }}
-                                            </option>
-                                        </CFormSelect>
+                                        <VueDatePicker v-model="timeStart" time-picker model-type="HH:mm"
+                                            :enable-seconds="false" :is-24="true" placeholder="Select Time">
+                                            <template #input-icon>
+                                                <div class="icon-wrapper">
+                                                    <img class="datepicker-icon" src="@/assets/clock.png" />
+                                                </div>
+                                            </template>
+                                        </VueDatePicker>
                                     </div>
                                 </div>
                             </CCol>
                             <CCol xs="4">
                                 <div class="hours-display">
-                                    <label class="OT_hours">0 Hours</label>
+                                    <label class="OT_hours">{{ totalHours }} Hours</label>
                                 </div>
                             </CCol>
                             <CCol xs="4">
                                 <div class="time-block">
                                     <label class="form-label">End of OT Hour</label>
                                     <div class="time-picker">
-                                        <CFormSelect v-model="selectedHourEnd" class="clock-input mx-1">
-                                            <option value="">18</option>
-                                            <option v-for="hour in hours" :key="hour" :value="hour">
-                                                {{ hour.toString().padStart(2, '0') }}
-                                            </option>
-                                        </CFormSelect>
-                                        <span class="align-self-center">:</span>
-                                        <CFormSelect v-model="selectedMinuteEnd" class="clock-input mx-1">
-                                            <option value="">20</option>
-                                            <option v-for="minute in minuteOptions" :key="minute" :value="minute">
-                                                {{ minute.toString().padStart(2, '0') }}
-                                            </option>
-                                        </CFormSelect>
+                                        <VueDatePicker v-model="timeEnd" time-picker model-type="HH:mm"
+                                            :enable-seconds="false" :is-24="true" placeholder="Select Time">
+                                            <template #input-icon>
+                                                <div class="icon-wrapper">
+                                                    <img class="datepicker-icon" src="@/assets/clock.png" />
+                                                </div>
+                                            </template>
+                                        </VueDatePicker>
+                                    </div>
+                                </div>
+                            </CCol>
+                        </CRow>
+                    </div>
+                </CCol>
+            </CRow>
+
+            <CRow class="justify-content-center mb-4">
+                <CCol xs="12" md="10">
+                    <div class="break-section">
+                        <div class="checkbox-wrapper">
+                            <CFormCheck v-model="hasBreak" hitArea="full" label="Have Break"
+                                class="custom-checkbox mb-2" />
+                        </div>
+                        <CRow>
+                            <CCol xs="4">
+                                <div class="time-picker-container">
+                                    <label class="form-label">Break Duration</label>
+                                    <div class="d-flex justify-content-center time-picker">
+                                        <VueDatePicker v-model="timeBreakStart" time-picker model-type="HH:mm"
+                                            :enable-seconds="false" :is-24="true" placeholder="Select Time">
+                                            <template #input-icon>
+                                                <div class="icon-wrapper">
+                                                    <img class="datepicker-icon" src="@/assets/clock.png" />
+                                                </div>
+                                            </template>
+                                        </VueDatePicker>
+                                    </div>
+                                </div>
+                            </CCol>
+                            <CCol xs="4">
+                                <div class="hours-display">
+                                    <label class="OT_hours">{{ totalBreakHours }} Hours</label>
+                                </div>
+                            </CCol>
+                            <CCol xs="4">
+                                <div class="time-picker-container">
+                                    <label class="form-label">Break Duration</label>
+                                    <div class="d-flex justify-content-center time-picker">
+                                        <VueDatePicker v-model="timeBreakEnd" time-picker model-type="HH:mm"
+                                            :enable-seconds="false" :is-24="true" placeholder="Select Time">
+                                            <template #input-icon>
+                                                <div class="icon-wrapper">
+                                                    <img class="datepicker-icon" src="@/assets/clock.png" />
+                                                </div>
+                                            </template>
+                                        </VueDatePicker>
                                     </div>
                                 </div>
                             </CCol>
@@ -116,35 +154,11 @@
 
             <CRow class="justify-content-center mb-4">
                 <CCol xs="12" md="8">
-                    <div class="break-section">
-                        <CFormCheck hitArea="full" label="Have Break" class="custom-checkbox mb-2" />
-                        <div class="time-picker-container">
-                            <label class="form-label">Break Duration</label>
-                            <div class="d-flex justify-content-center">
-                                <CFormSelect v-model="selectedHourEnd" class="clock-input mx-1">
-                                    <option value="">18</option>
-                                    <option v-for="hour in hours" :key="hour" :value="hour">
-                                        {{ hour.toString().padStart(2, '0') }}
-                                    </option>
-                                </CFormSelect>
-                                <span class="align-self-center">:</span>
-                                <CFormSelect v-model="selectedMinuteEnd" class="clock-input mx-1">
-                                    <option value="">20</option>
-                                    <option v-for="minute in minuteOptions" :key="minute" :value="minute">
-                                        {{ minute.toString().padStart(2, '0') }}
-                                    </option>
-                                </CFormSelect>
-                            </div>
-                        </div>
-                    </div>
-                </CCol>
-            </CRow>
-
-            <CRow class="justify-content-center mb-4">
-                <CCol xs="12" md="8">
                     <div class="reason-section">
                         <h5 class="section-title">Overtime Reason</h5>
-                        <CFormTextarea v-model="overtimeReason" placeholder="Please provide detailed reason for overtime request" class="custom-textarea" :rows="4" />
+                        <CFormTextarea v-model="overtimeReason"
+                            placeholder="Please provide detailed reason for overtime request" class="custom-textarea"
+                            :rows="4" />
                     </div>
                 </CCol>
             </CRow>
@@ -158,18 +172,28 @@
     </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
+<script>
+import { useOvertimeForm } from '@/utils/useOvertimeForm'
+import VueDatePicker from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
 
-const selectedHourStart = ref('')
-const selectedMinuteStart = ref('')
-const selectedHourEnd = ref('')
-const selectedMinuteEnd = ref('')
-const overtimeReason = ref('')
-
-const hours = Array.from({ length: 24 }, (_, i) => i)
-const minuteOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+export default {
+    name: 'OvertimeView',
+    components: {
+        VueDatePicker,
+    },
+    setup() {
+        const form = useOvertimeForm()
+        return {
+            ...form
+        }
+    },
+    async created() {
+        await this.loadInitialData()
+    }
+}
 </script>
+
 
 <style scoped>
 .overtime-container {
@@ -256,6 +280,14 @@ const minuteOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
     margin-bottom: 0.5rem;
 }
 
+.checkbox-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 1rem 0;
+}
+
 .reason-section {
     background-color: #f8f9fa;
     padding: 1rem;
@@ -302,6 +334,26 @@ const minuteOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 
 .date-input {
     text-align: center;
+}
+
+.datepicker-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 8px;
+}
+
+.break-row {
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .OT_hours {

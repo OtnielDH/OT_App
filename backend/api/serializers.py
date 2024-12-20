@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Project, Employee
+from .models import OvertimeRequest
 
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,4 +10,9 @@ class ProjectSerializer(serializers.ModelSerializer):
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ['emp_id', 'name', 'employee_code', 'is_enabled']
+        fields = ['id', 'name', 'emp_id', 'is_enabled']
+
+class OvertimeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OvertimeRequest
+        fields = '__all__'
