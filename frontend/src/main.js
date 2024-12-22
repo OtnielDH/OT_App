@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-
+import Toast from 'vue-toastification'
 
 // CoreUI
 import CoreuiVue from '@coreui/vue'
@@ -17,6 +17,10 @@ import '@vuepic/vue-datepicker/dist/main.css'
 
 
 const app = createApp(App)
+app.use(Toast, {
+    position: 'top-right',
+    timeout: 3000
+})
 app.use(router)
 app.provide('icons', icons)
 app.component('VueDatePicker', VueDatePicker)

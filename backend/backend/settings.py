@@ -59,8 +59,8 @@ ROOT_URLCONF = 'backend.urls'
 CORS_ORIGIN_ALLOW_ALL = True     # For development only
 # Or specify exact origins
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8081",
-    "http://127.0.0.1:8081"
+    "http://localhost:8080",
+    "http://127.0.0.1:8080"
 ]
 
 
@@ -89,9 +89,9 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mydatabase',
+        'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': 'test',
+        'PASSWORD': 'otniel',
         'HOST': 'localhost',
         'PORT': '5432',
     }

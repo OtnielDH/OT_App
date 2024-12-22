@@ -22,3 +22,15 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 class OvertimeRequestViewSet(viewsets.ModelViewSet):
     queryset = OvertimeRequest.objects.all()
     serializer_class = OvertimeSerializer
+
+    def get_queryset(self):
+        queryset = OvertimeRequest.objects.all()
+        employee = self.request.query_params.get('employee', None)
+        date = self.request.query_params.get('request_date', None)
+        
+        if employee and date:
+            queryset = queryset.filter(
+                employee=employee,
+                request_date=date
+            )
+        return queryset

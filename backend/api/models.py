@@ -46,6 +46,7 @@ class OvertimeRequest(models.Model):
     class Meta:
         db_table = 'overtime_requests'
         managed = False
+        unique_together = ('employee', 'request_date') 
 
     def __str__(self):
         return f"{self.employee.name} - {self.request_date}"

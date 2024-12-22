@@ -119,3 +119,8 @@ CREATE TABLE overtime_requests (
 CREATE INDEX idx_overtime_employee ON overtime_requests(employee_id);
 CREATE INDEX idx_overtime_project ON overtime_requests(project_id);
 CREATE INDEX idx_overtime_date ON overtime_requests(request_date);
+
+
+ALTER TABLE overtime_requests 
+ADD CONSTRAINT unique_employee_date 
+UNIQUE (employee_id, request_date);
