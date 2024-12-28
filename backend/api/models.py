@@ -1,33 +1,42 @@
 from django.db import models
+from django.utils.timezone import now
+import json
+import os
+
+
+class TimestampedModel(models.Model):
+    created_at = models.DateTimeField(default=now, editable=False, db_index=True)
+    updated_at = models.DateTimeField(default=now, editable=False)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:     # On;y on creation
+            self.created_at = now()
+        self.updated_at = now()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        abstract = True
 
 # Create your models here.
-class Project(models.Model):
+class Project(TimestampedModel):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=50)
     is_enabled = models.BooleanField(default=True)
 
-    class Meta:
-        db_table = 'projects'
-        managed = False
-
     def __str__(self):
         return self.name
 
-class Employee(models.Model):
+class Employee(TimestampedModel):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=100)
     emp_id = models.CharField(max_length=20)
     is_enabled = models.BooleanField(default=True)
 
-    class Meta:
-        db_table = 'employees'
-        managed = False
-
     def __str__(self):
         return self.name
     
 
-class OvertimeRequest(models.Model):
+class OvertimeRequest(TimestampedModel):
     id = models.AutoField(primary_key=True)
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
@@ -42,11 +51,6 @@ class OvertimeRequest(models.Model):
     reason = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'overtime_requests'
-        managed = False
-        unique_together = ('employee', 'request_date') 
 
     def __str__(self):
         return f"{self.employee.name} - {self.request_date}"

@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'drf_yasg', 
     'api',
 ]
 
@@ -60,7 +61,8 @@ CORS_ORIGIN_ALLOW_ALL = True     # For development only
 # Or specify exact origins
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
-    "http://127.0.0.1:8080"
+    "http://127.0.0.1:8080",
+    "http://localhost:8000", 
 ]
 
 
@@ -82,14 +84,32 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Basic': {
+            'type': 'basic'
+        },
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
+}
 
+REDOC_SETTINGS = {
+    'LAZY_RENDERING': True,
+    'HIDE_HOSTNAME': False,
+    'EXPAND_RESPONSES': '200,201',
+    'PATH_IN_MIDDLE': False,
+}
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
+        'NAME': 'overtimedb',
         'USER': 'postgres',
         'PASSWORD': 'otniel',
         'HOST': 'localhost',
@@ -123,7 +143,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Jakarta'
 
 USE_I18N = True
 
