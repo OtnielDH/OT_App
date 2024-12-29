@@ -1,7 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import api from '@/services/api'
 import { calculateTimeDifference } from '@/utils/timeCalculations'
-import { useToast } from 'vue-toastification'
 
 export function useOvertimeForm() {
     const projects = ref([])
@@ -16,8 +15,9 @@ export function useOvertimeForm() {
     const timeBreakStart = ref('')
     const timeBreakEnd = ref('')
     const overtimeReason = ref('')
-    const toast = useToast()
     const submitting = ref(false)
+    const deleting = ref(false)
+    const hasExistingRequest = ref(false)
 
     const today = new Date().toISOString().split('T')[0]
     const selectedDate = ref(today)
@@ -39,7 +39,7 @@ export function useOvertimeForm() {
             submitting.value = true
             const validationError = validateForm()
             if (validationError) {
-                toast.error(validationError)
+                console.error(validationError)
                 return
             }
 
@@ -66,15 +66,16 @@ export function useOvertimeForm() {
 
             let response
             if (existingRequest.data.length > 0) {
-                // Update existing request
                 const existingId = existingRequest.data[0].id
                 response = await api.updateOvertimeRequest(existingId, overtimeData)
-                toast.success('Overtime request updated successfully')
+                console.log('Overtime request updated successfully')
             } else {
-                // Create new request
                 response = await api.createOvertimeRequest(overtimeData)
-                toast.success('Overtime request submitted successfully')
+                console.log('Overtime request submitted successfully')
             }
+
+            hasExistingRequest.value = true
+            await checkExistingRequest(selectedEmployees.value, selectedDate.value)
 
         } catch (error) {
             const errorMessage = error.response?.data || error.message
@@ -82,23 +83,53 @@ export function useOvertimeForm() {
                 const messages = Object.entries(errorMessage)
                     .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
                     .join('\n')
-                toast.error(messages)
+                console.error(messages)
             } else {
-                toast.error(errorMessage)
+                console.error(errorMessage)
             }
         } finally {
             submitting.value = false
         }
     }
 
+    const deleteOvertimeRequest = async () => {
+        if (!confirm('Are you sure you want to delete this request?')) return
+
+        try {
+            deleting.value = true
+            const existingRequest = await api.checkExistingOvertimeRequest(
+                selectedEmployees.value,
+                selectedDate.value
+            )
+
+            if (existingRequest.data.length > 0) {
+                const existingId = existingRequest.data[0].id
+                await api.deleteOvertimeRequest(existingId)
+                console.log('Overtime request deleted successfully')
+                resetForm()
+            } else {
+                console.error('No existing request found to delete')
+            }
+        } catch (error) {
+            console.error('Failed to delete request')
+        } finally {
+            deleting.value = false
+        }
+    }
+
     const checkExistingRequest = async (employeeId, date) => {
-        if (!employeeId || !date) return
+        if (!employeeId || !date) {
+            hasExistingRequest.value = false
+            return
+        }
 
         try {
             const existingRequest = await api.checkExistingOvertimeRequest(
                 employeeId,
                 date
             )
+
+            hasExistingRequest.value = existingRequest.data.length > 0
 
             if (existingRequest.data.length > 0) {
                 // Populate form with existing request data
@@ -115,25 +146,22 @@ export function useOvertimeForm() {
                     timeBreakEnd.value = ''
                 }
                 overtimeReason.value = request.reason
-                toast.info('Existing overtime request loaded')
+                console.log('Existing overtime request loaded')
             } else {
                 // Reset form fields but keep employee selection
                 resetForm(false)
             }
         } catch (error) {
             console.error('Error checking request:', error)
-            toast.error('Failed to check existing request')
+            console.error('Failed to check existing request')
         }
     }
-
 
     watch([selectedEmployees, selectedDate], async ([newEmployee, newDate]) => {
         if (newEmployee && newDate) {
             await checkExistingRequest(newEmployee, newDate)
         }
     })
-
-
 
     const resetForm = (clearEmployee = true) => {
         if (clearEmployee) {
@@ -213,6 +241,9 @@ export function useOvertimeForm() {
         submitOvertimeRequest,
         //checking request
         checkExistingRequest,
+        hasExistingRequest,
+        //delete request
+        deleting,
+        deleteOvertimeRequest,
     }
-
 }

@@ -13,8 +13,7 @@ import "@coreui/icons/css/all.min.css"
 
 // Vue Datepicker
 import VueDatePicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css'
-
+import '@vuepic/vue-datepicker/dist/main.css';
 
 const app = createApp(App)
 app.use(Toast, {
