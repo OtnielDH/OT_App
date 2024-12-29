@@ -30,7 +30,7 @@
 
 <script setup>
 import { onMounted } from 'vue'
-import { useOvertimeForm } from '@/utils/useOvertimeForm'
+import { useOvertimeForm } from '@/composables/overtime/useOvertimeForm'
 import EmployeeSelect from '@/components/overtime/EmployeeSelect.vue'
 import ProjectSelect from '@/components/overtime/ProjectSelect.vue'
 import DateSelect from '@/components/overtime/DateSelect.vue'
