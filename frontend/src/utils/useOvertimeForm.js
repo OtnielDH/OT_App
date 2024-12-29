@@ -27,9 +27,26 @@ export function useOvertimeForm() {
         if (!selectedProjects.value) return 'Please select a project'
         if (!selectedDate.value) return 'Please select a date'
         if (!timeStart.value || !timeEnd.value) return 'Please set overtime hours'
-        if (hasBreak.value && (!timeBreakStart.value || !timeBreakEnd.value)) {
-            return 'Please set break hours'
+
+        if (hasBreak.value) {
+            if (!timeBreakStart.value || !timeBreakEnd.value) {
+                return 'Please set break hours'
+            }
+
+            const startMinutes = parseInt(timeStart.value.split(':')[0]) * 60 + parseInt(timeStart.value.split(':')[1])
+            const endMinutes = parseInt(timeEnd.value.split(':')[0]) * 60 + parseInt(timeEnd.value.split(':')[1])
+            const breakStartMinutes = parseInt(timeBreakStart.value.split(':')[0]) * 60 + parseInt(timeBreakStart.value.split(':')[1])
+            const breakEndMinutes = parseInt(timeBreakEnd.value.split(':')[0]) * 60 + parseInt(timeBreakEnd.value.split(':')[1])
+
+            if (breakStartMinutes < startMinutes || breakEndMinutes > endMinutes) {
+                return 'Break time must be within overtime hours'
+            }
+
+            if (breakEndMinutes <= breakStartMinutes) {
+                return 'Break end time must be after break start time'
+            }
         }
+
         if (!overtimeReason.value) return 'Please provide overtime reason'
         return null
     }
@@ -157,12 +174,6 @@ export function useOvertimeForm() {
         }
     }
 
-    watch([selectedEmployees, selectedDate], async ([newEmployee, newDate]) => {
-        if (newEmployee && newDate) {
-            await checkExistingRequest(newEmployee, newDate)
-        }
-    })
-
     const resetForm = (clearEmployee = true) => {
         if (clearEmployee) {
             selectedEmployees.value = ''
@@ -214,6 +225,83 @@ export function useOvertimeForm() {
         }
     }
 
+    const timeToMinutes = (time) => {
+        const [hours, minutes] = time.split(':').map(Number)
+        return hours * 60 + minutes
+    }
+
+    const minutesToTime = (minutes) => {
+        const hours = Math.floor(minutes / 60).toString().padStart(2, '0')
+        const mins = (minutes % 60).toString().padStart(2, '0')
+        return `${hours}:${mins}`
+    }
+
+    const defaultBreakStart = computed(() => {
+        if (!timeStart.value || !timeEnd.value) return ''
+
+        const startMinutes = timeToMinutes(timeStart.value)
+        const endMinutes = timeToMinutes(timeEnd.value)
+        const duration = endMinutes - startMinutes
+
+        // If OT is 4 hours or more, set break at 4-hour mark
+        if (duration >= 240) { // 4 hours = 240 minutes
+            return minutesToTime(startMinutes + 240) // Start break after 4 hours
+        } else {
+            // For shorter OT, keep existing middle-point logic
+            const middleMinutes = Math.floor((startMinutes + endMinutes) / 2)
+            return minutesToTime(middleMinutes)
+        }
+    })
+
+    const defaultBreakEnd = computed(() => {
+        if (!defaultBreakStart.value) return ''
+
+        const startMinutes = timeToMinutes(timeStart.value)
+        const endMinutes = timeToMinutes(timeEnd.value)
+        const duration = endMinutes - startMinutes
+
+        // If OT is 4 hours or more, set 1-hour break
+        if (duration >= 240) {
+            const breakStartMinutes = timeToMinutes(defaultBreakStart.value)
+            return minutesToTime(breakStartMinutes + 60) // 1-hour break
+        } else {
+            // For shorter OT, keep existing 30-min break
+            const breakStartMinutes = timeToMinutes(defaultBreakStart.value)
+            return minutesToTime(breakStartMinutes + 30)
+        }
+    })
+
+    watch([selectedEmployees, selectedDate], async ([newEmployee, newDate]) => {
+        if (newEmployee && newDate) {
+            await checkExistingRequest(newEmployee, newDate)
+        }
+    })
+
+    watch([timeStart, timeEnd], ([newStart, newEnd]) => {
+        if (!newStart || !newEnd) return
+
+        const startMinutes = timeToMinutes(newStart)
+        const endMinutes = timeToMinutes(newEnd)
+        const duration = endMinutes - startMinutes
+
+        if (duration >= 240) { // 4 hours or more
+            hasBreak.value = true
+            timeBreakStart.value = defaultBreakStart.value
+            timeBreakEnd.value = defaultBreakEnd.value
+        }
+    })
+
+    watch(hasBreak, (newValue) => {
+        if (newValue) {
+            timeBreakStart.value = defaultBreakStart.value
+            timeBreakEnd.value = defaultBreakEnd.value
+        } else {
+            timeBreakStart.value = ''
+            timeBreakEnd.value = ''
+        }
+    })
+
+
     return {
         // state
         projects,
@@ -234,6 +322,8 @@ export function useOvertimeForm() {
         selectedEmployeeId,
         totalHours,
         totalBreakHours,
+        defaultBreakStart,
+        defaultBreakEnd,
         // methods
         loadInitialData,
         //request

@@ -1,5 +1,7 @@
 <template>
     <div class="overtime-container">
+        <div v-if="error" class="error-alert">{{ error }}</div>
+        <div v-if="loading" class="loading-overlay">Loading...</div>
         <h1 class="page-title">Overtime Request</h1>
         <CContainer class="form-container">
             <EmployeeSelect :employees="activeEmployees" v-model:selected-employee="selectedEmployees"
@@ -21,7 +23,6 @@
                     loading-text="Submitting..." @click="submitOvertimeRequest" />
                 <ActionButton variant="danger" label="Delete Request" :loading="deleting"
                     :disabled="!hasExistingRequest" loading-text="Deleting..." @click="deleteOvertimeRequest" />
-
             </CRow>
         </CContainer>
     </div>
