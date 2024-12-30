@@ -46,9 +46,9 @@ export function useOvertimeApi(state, computed) {
                 if (!time || time.trim() === '') return null
                 // Add validation logging
                 console.log('Formatting time:', time)
-                // Ensure correct time format HH:MM:SS
+                // Ensure correct time format HH:MM
                 const [hours, minutes] = time.split(':')
-                return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`
+                return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
             }
 
             // Debug logging
@@ -59,7 +59,9 @@ export function useOvertimeApi(state, computed) {
 
             const overtimeData = {
                 employee: Number(state.selectedEmployees.value),
+                employee_name: state.employees.value.find(emp => emp.id === Number(state.selectedEmployees.value))?.name || '',
                 project: Number(state.selectedProjects.value),
+                project_name: state.projects.value.find(proj => proj.id === Number(state.selectedProjects.value))?.name || '',
                 request_date: state.selectedDate.value,
                 time_start: formatTime(state.timeStart.value),
                 time_end: formatTime(state.timeEnd.value),
@@ -88,7 +90,6 @@ export function useOvertimeApi(state, computed) {
             }
 
             await checkExistingRequest(state.selectedEmployees.value, state.selectedDate.value)
-
 
         } catch (error) {
             const errorMessage = error.response?.data || error.message

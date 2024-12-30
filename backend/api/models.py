@@ -39,7 +39,9 @@ class Employee(TimestampedModel):
 class OvertimeRequest(TimestampedModel):
     id = models.AutoField(primary_key=True)
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    employee_name = models.CharField(max_length=100, blank=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    project_name = models.CharField(max_length=50, blank=True)   
     request_date = models.DateField()
     time_start = models.TimeField()
     time_end = models.TimeField()
