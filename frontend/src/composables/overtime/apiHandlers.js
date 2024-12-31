@@ -164,6 +164,15 @@ export function useOvertimeApi(state, computed) {
                 await api.deleteOvertimeRequest(existingId)
                 console.log('Overtime request deleted successfully')
 
+                // Export JSON
+                try {
+                    console.log('Attempting to export JSON for date:', state.selectedDate.value);
+                    const exportResponse = await api.exportOvertimeJson(state.selectedDate.value);
+                    console.log('Export response:', exportResponse.data);
+                } catch (exportError) {
+                    console.error('Failed to export JSON:', exportError);
+                }
+
                 // Reset form and hasExistingRequest flag
                 resetForm(false)  // Keep employee selected
                 state.hasExistingRequest.value = false  // Allow resubmission
