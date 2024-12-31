@@ -37,6 +37,15 @@ export default {
         return apiClient.delete(`/api/overtime-requests/${id}/`)
     },
 
+    exportOvertimeJson(date) {
+        console.log('Exporting JSON for date:', date);
+        return apiClient.post('/api/overtime-requests/export_json/', { date })
+            .catch(error => {
+                console.error('Export JSON error:', error.response?.data || error);
+                throw error;
+            });
+    },
+
     async checkExistingOvertimeRequest(employeeId, date) {
         return apiClient.get(`/api/overtime-requests/?employee=${employeeId}&request_date=${date}`)
     }

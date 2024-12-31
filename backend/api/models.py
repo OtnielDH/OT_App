@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils.timezone import now
+from django.utils import timezone
+from django.conf import settings
 import json
 import os
 
@@ -56,3 +58,37 @@ class OvertimeRequest(TimestampedModel):
 
     def __str__(self):
         return f"{self.employee.name} - {self.request_date}"
+    
+    @classmethod
+    def export_daily_json(cls, date):
+        try:
+            export_dir = "D:/Project/VSCode/OT_app/data"
+            os.makedirs(export_dir, exist_ok=True)
+            filename = date.strftime('%Y%m%d.json')
+            filepath = os.path.join(export_dir, filename)
+
+            daily_requests = cls.objects.filter(request_date=date).select_related('employee', 'project')
+            
+            export_data = [{
+                "employee_id": request.employee.emp_id,
+                "employee_name": request.employee.name,
+                "project": request.project.name,
+                "time_start": request.time_start.strftime('%H:%M'),
+                "time_end": request.time_end.strftime('%H:%M'),
+                "total_hours": str(request.total_hours),
+                "has_break": request.has_break,
+                "break_start": request.break_start.strftime('%H:%M') if request.break_start else None,
+                "break_end": request.break_end.strftime('%H:%M') if request.break_end else None,
+                "break_hours": str(request.break_hours) if request.break_hours else None,
+                "reason": request.reason,
+                "created_at": timezone.localtime(request.created_at).strftime('%Y-%m-%d %H:%M:%S'),
+                "updated_at": timezone.localtime(request.updated_at).strftime('%Y-%m-%d %H:%M:%S')
+            } for request in daily_requests]
+
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+
+            return filepath
+        except Exception as e:
+            print(f"Error exporting JSON: {str(e)}")
+            raise

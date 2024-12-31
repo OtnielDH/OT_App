@@ -7,6 +7,8 @@ from rest_framework.filters import SearchFilter
 from .serializers import ProjectSerializer, EmployeeSerializer, OvertimeSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.decorators import action
+from datetime import datetime
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
@@ -113,3 +115,24 @@ class OvertimeRequestViewSet(viewsets.ModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
+    
+    @action(detail=False, methods=['post'])
+    def export_json(self, request):
+        try:
+            print("Received export request:", request.data)
+            date = datetime.strptime(request.data['date'], '%Y-%m-%d').date()
+            print("Parsed date:", date)
+            
+            filepath = OvertimeRequest.export_daily_json(date)
+            print("Export completed to:", filepath)
+            
+            return Response({
+                'status': 'success',
+                'message': f'JSON exported to {filepath}'
+            })
+        except Exception as e:
+            print("Export error:", str(e))
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)

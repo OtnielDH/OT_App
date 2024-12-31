@@ -1,0 +1,47 @@
+[
+  {
+    "employee_id": "MW2300234",
+    "employee_name": "Apria Wati",
+    "project": "BARCA",
+    "time_start": "17:20",
+    "time_end": "18:20",
+    "total_hours": "1.00",
+    "has_break": false,
+    "break_start": null,
+    "break_end": null,
+    "break_hours": null,
+    "reason": "tolong",
+    "created_at": "2024-12-31 07:51:04",
+    "updated_at": "2024-12-31 07:51:04"
+  },
+  {
+    "employee_id": "MW2400310",
+    "employee_name": "Muchammad Farel",
+    "project": "BARCA",
+    "time_start": "17:20",
+    "time_end": "18:20",
+    "total_hours": "1.00",
+    "has_break": false,
+    "break_start": null,
+    "break_end": null,
+    "break_hours": null,
+    "reason": "bantu apir",
+    "created_at": "2024-12-31 07:54:10",
+    "updated_at": "2024-12-31 07:56:38"
+  },
+  {
+    "employee_id": "MW2202033",
+    "employee_name": "Otniel Dwimarti",
+    "project": "BARCA",
+    "time_start": "17:20",
+    "time_end": "18:20",
+    "total_hours": "1.00",
+    "has_break": false,
+    "break_start": null,
+    "break_end": null,
+    "break_hours": null,
+    "reason": "test",
+    "created_at": "2024-12-31 07:38:50",
+    "updated_at": "2024-12-31 08:03:02"
+  }
+]

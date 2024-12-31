@@ -91,6 +91,15 @@ export function useOvertimeApi(state, computed) {
 
             await checkExistingRequest(state.selectedEmployees.value, state.selectedDate.value)
 
+            // Export JSON
+            try {
+                console.log('Attempting to export JSON for date:', state.selectedDate.value);
+                const exportResponse = await api.exportOvertimeJson(state.selectedDate.value);
+                console.log('Export response:', exportResponse.data);
+            } catch (exportError) {
+                console.error('Failed to export JSON:', exportError);
+            }
+
         } catch (error) {
             const errorMessage = error.response?.data || error.message
             if (typeof errorMessage === 'object') {
