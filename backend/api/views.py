@@ -9,6 +9,9 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework.decorators import action
 from datetime import datetime
+from django.core.cache import cache
+from django.conf import settings
+from django.db import transaction
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
@@ -102,8 +105,68 @@ class OvertimeRequestViewSet(viewsets.ModelViewSet):
             400: "Validation Error"
         }
     )
+
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        cache_key = f"ot_request_{request.data['employee']}_{request.data['request_date']}"
+        
+        try:
+            if not cache.add(cache_key, "locked", timeout=30):
+                return Response(
+                    {"error": "Request in progress. Please wait."}, 
+                    status=409
+                )
+            
+            with transaction.atomic():
+                # Check existing inside transaction
+                existing = OvertimeRequest.objects.select_for_update().filter(
+                    employee_id=request.data['employee'],
+                    request_date=request.data['request_date']
+                ).first()
+                
+                if existing:
+                    serializer = self.get_serializer(existing, data=request.data)
+                else:
+                    serializer = self.get_serializer(data=request.data)
+                    
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                return Response(serializer.data, status=201)
+        finally:
+            cache.delete(cache_key)
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        cache_key = f"ot_delete_{kwargs['pk']}"
+        try:
+            if not cache.add(cache_key, "locked", timeout=30):
+                return Response(
+                    {"error": "Delete in progress"}, 
+                    status=409
+                )
+            
+            try:
+                instance = self.get_object()
+                # Lock the record within transaction
+                OvertimeRequest.objects.select_for_update().get(pk=instance.pk)
+                date = instance.request_date
+                response = super().destroy(request, *args, **kwargs)
+                
+                # Export updated JSON after deletion
+                OvertimeRequest.export_daily_json(date)
+                
+                return response
+            except OvertimeRequest.DoesNotExist:
+                return Response(
+                    {"error": "Request already deleted"}, 
+                    status=404
+                )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=400
+            )
+        finally:
+            cache.delete(cache_key)
 
     @swagger_auto_schema(
         operation_summary="Update overtime request",
@@ -113,8 +176,23 @@ class OvertimeRequestViewSet(viewsets.ModelViewSet):
             404: "Not Found"
         }
     )
+
     def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+        cache_key = f"ot_update_{kwargs['pk']}"
+        try:
+            if not cache.add(cache_key, "locked", timeout=30):
+                return Response(
+                    {"error": "Update in progress"}, 
+                    status=409
+                )
+                
+            with transaction.atomic():
+                instance = self.get_object()
+                # Lock the record
+                OvertimeRequest.objects.select_for_update().get(pk=instance.pk)
+                return super().update(request, *args, **kwargs)
+        finally:
+            cache.delete(cache_key)
     
     @action(detail=False, methods=['post'])
     def export_json(self, request):

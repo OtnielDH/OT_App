@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.utils import timezone
 from django.conf import settings
+from django.db import transaction
 import json
 import os
 
@@ -56,6 +57,9 @@ class OvertimeRequest(TimestampedModel):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
     def __str__(self):
         return f"{self.employee.name} - {self.request_date}"
     
@@ -66,9 +70,16 @@ class OvertimeRequest(TimestampedModel):
             os.makedirs(export_dir, exist_ok=True)
             filename = date.strftime('%Y%m%d.json')
             filepath = os.path.join(export_dir, filename)
-
-            daily_requests = cls.objects.filter(request_date=date).select_related('employee', 'project')
             
+            # Get data inside transaction
+            with transaction.atomic():
+                daily_requests = list(cls.objects
+                    .select_for_update()
+                    .filter(request_date=date)
+                    .select_related('employee', 'project')
+                    .order_by('time_start'))
+            
+            # Process data outside transaction
             export_data = [{
                 "employee_id": request.employee.emp_id,
                 "employee_name": request.employee.name,
@@ -85,6 +96,7 @@ class OvertimeRequest(TimestampedModel):
                 "updated_at": timezone.localtime(request.updated_at).strftime('%Y-%m-%d %H:%M:%S')
             } for request in daily_requests]
 
+            # Write file outside transaction
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)
 

@@ -33,9 +33,10 @@ export function useOvertimeApi(state, computed) {
         state.overtimeReason.value = ''
     }
 
-    const submitOvertimeRequest = async (validateForm, totalHours, totalBreakHours) => {
+    const submitOvertimeRequest = async (validateForm, totalHours, totalBreakHours, retries = 3) => {
         try {
             state.submitting.value = true
+
             const validationError = validateForm()
             if (validationError) {
                 console.error(validationError)
@@ -56,7 +57,6 @@ export function useOvertimeApi(state, computed) {
             console.log('Break start:', state.timeBreakStart.value)
             console.log('Break end:', state.timeBreakEnd.value)
 
-
             const overtimeData = {
                 employee: Number(state.selectedEmployees.value),
                 employee_name: state.employees.value.find(emp => emp.id === Number(state.selectedEmployees.value))?.name || '',
@@ -73,34 +73,42 @@ export function useOvertimeApi(state, computed) {
                 break_hours: state.hasBreak.value ? (totalBreakHours || 0) : 0,
             }
 
-            console.log('Overtime data:', overtimeData)
-
-            const existingRequest = await api.checkExistingOvertimeRequest(
-                state.selectedEmployees.value,
-                state.selectedDate.value
-            )
-
-            if (existingRequest.data.length > 0) {
-                const existingId = existingRequest.data[0].id
-                await api.updateOvertimeRequest(existingId, overtimeData)
-                console.log('Overtime request updated successfully')
-            } else {
-                await api.createOvertimeRequest(overtimeData)
-                console.log('Overtime request submitted successfully')
-            }
-
-            await checkExistingRequest(state.selectedEmployees.value, state.selectedDate.value)
-
-            // Export JSON
             try {
-                console.log('Attempting to export JSON for date:', state.selectedDate.value);
-                const exportResponse = await api.exportOvertimeJson(state.selectedDate.value);
-                console.log('Export response:', exportResponse.data);
-            } catch (exportError) {
-                console.error('Failed to export JSON:', exportError);
-            }
+                const existingRequest = await api.checkExistingOvertimeRequest(
+                    state.selectedEmployees.value,
+                    state.selectedDate.value
+                )
 
+                if (existingRequest.data.length > 0) {
+                    const existingId = existingRequest.data[0].id
+                    await api.updateOvertimeRequest(existingId, overtimeData)
+                    console.log('Overtime request updated successfully')
+                } else {
+                    await api.createOvertimeRequest(overtimeData)
+                    console.log('Overtime request submitted successfully')
+                }
+
+                await checkExistingRequest(state.selectedEmployees.value, state.selectedDate.value)
+
+                // Export JSON after successful submission
+                try {
+                    console.log('Exporting JSON for date:', state.selectedDate.value)
+                    const exportResponse = await api.exportOvertimeJson(state.selectedDate.value)
+                    console.log('Export response:', exportResponse.data)
+                } catch (exportError) {
+                    console.error('Failed to export JSON:', exportError)
+                }
+
+            } catch (error) {
+                if (error.response?.status === 409 && retries > 0) {
+                    console.log(`Request in queue, retrying... (${retries} attempts left)`)
+                    await new Promise(resolve => setTimeout(resolve, 1000))
+                    return submitOvertimeRequest(validateForm, totalHours, totalBreakHours, retries - 1)
+                }
+                throw error
+            }
         } catch (error) {
+            console.error('Submission error:', error)
             const errorMessage = error.response?.data || error.message
             if (typeof errorMessage === 'object') {
                 const messages = Object.entries(errorMessage)
@@ -149,7 +157,7 @@ export function useOvertimeApi(state, computed) {
         }
     }
 
-    const deleteOvertimeRequest = async () => {
+    const deleteOvertimeRequest = async (retries = 3) => {
         if (!confirm('Are you sure you want to delete this request?')) return
 
         try {
@@ -160,27 +168,44 @@ export function useOvertimeApi(state, computed) {
             )
 
             if (existingRequest.data.length > 0) {
-                const existingId = existingRequest.data[0].id
-                await api.deleteOvertimeRequest(existingId)
-                console.log('Overtime request deleted successfully')
-
-                // Export JSON
                 try {
-                    console.log('Attempting to export JSON for date:', state.selectedDate.value);
-                    const exportResponse = await api.exportOvertimeJson(state.selectedDate.value);
-                    console.log('Export response:', exportResponse.data);
-                } catch (exportError) {
-                    console.error('Failed to export JSON:', exportError);
-                }
+                    const existingId = existingRequest.data[0].id
+                    await api.deleteOvertimeRequest(existingId)
+                    console.log('Overtime request deleted successfully')
 
-                // Reset form and hasExistingRequest flag
-                resetForm(false)  // Keep employee selected
-                state.hasExistingRequest.value = false  // Allow resubmission
+                    // Export JSON after successful deletion
+                    try {
+                        console.log('Exporting JSON for date:', state.selectedDate.value)
+                        const exportResponse = await api.exportOvertimeJson(state.selectedDate.value)
+                        console.log('Export response:', exportResponse.data)
+                    } catch (exportError) {
+                        console.error('Failed to export JSON:', exportError)
+                    }
+
+                    resetForm(false)  // Keep employee selected
+                    state.hasExistingRequest.value = false
+                } catch (error) {
+                    if (error.response?.status === 409 && retries > 0) {
+                        console.log(`Delete in queue, retrying... (${retries} attempts left)`)
+                        await new Promise(resolve => setTimeout(resolve, 1000))
+                        return deleteOvertimeRequest(retries - 1)
+                    }
+                    throw error
+                }
             } else {
                 console.error('No existing request found to delete')
             }
         } catch (error) {
-            console.error('Failed to delete request')
+            console.error('Failed to delete request:', error)
+            const errorMessage = error.response?.data || error.message
+            if (typeof errorMessage === 'object') {
+                const messages = Object.entries(errorMessage)
+                    .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
+                    .join('\n')
+                console.error(messages)
+            } else {
+                console.error(errorMessage)
+            }
         } finally {
             state.deleting.value = false
         }
