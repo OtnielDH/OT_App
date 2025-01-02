@@ -24,6 +24,7 @@ export function useOvertimeApi(state, computed) {
         if (clearEmployee) {
             state.selectedEmployees.value = ''
         }
+        state.isHoliday.value = false
         state.selectedProjects.value = ''
         state.timeStart.value = '17:20'
         state.timeEnd.value = '18:20'
@@ -31,6 +32,15 @@ export function useOvertimeApi(state, computed) {
         state.timeBreakStart.value = ''
         state.timeBreakEnd.value = ''
         state.overtimeReason.value = ''
+
+    }
+    const formatTime = (time) => {
+        if (!time || time.trim() === '') return null
+        // Add validation logging
+        //console.log('Formatting time:', time)
+        // Ensure correct time format HH:MM
+        const [hours, minutes] = time.split(':')
+        return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
     }
 
     const submitOvertimeRequest = async (validateForm, totalHours, totalBreakHours, retries = 3) => {
@@ -42,20 +52,6 @@ export function useOvertimeApi(state, computed) {
                 console.error(validationError)
                 return
             }
-
-            const formatTime = (time) => {
-                if (!time || time.trim() === '') return null
-                // Add validation logging
-                console.log('Formatting time:', time)
-                // Ensure correct time format HH:MM
-                const [hours, minutes] = time.split(':')
-                return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
-            }
-
-            // Debug logging
-            console.log('Has break:', state.hasBreak.value)
-            console.log('Break start:', state.timeBreakStart.value)
-            console.log('Break end:', state.timeBreakEnd.value)
 
             const overtimeData = {
                 employee: Number(state.selectedEmployees.value),
@@ -72,6 +68,7 @@ export function useOvertimeApi(state, computed) {
                 total_hours: totalHours || 0,
                 break_hours: state.hasBreak.value ? (totalBreakHours || 0) : 0,
             }
+            console.log('Overtime Data:', overtimeData) // Debug log
 
             try {
                 const existingRequest = await api.checkExistingOvertimeRequest(
@@ -82,26 +79,21 @@ export function useOvertimeApi(state, computed) {
                 if (existingRequest.data.length > 0) {
                     const existingId = existingRequest.data[0].id
                     await api.updateOvertimeRequest(existingId, overtimeData)
-                    console.log('Overtime request updated successfully')
                 } else {
                     await api.createOvertimeRequest(overtimeData)
-                    console.log('Overtime request submitted successfully')
                 }
 
                 await checkExistingRequest(state.selectedEmployees.value, state.selectedDate.value)
 
                 // Export JSON after successful submission
                 try {
-                    console.log('Exporting JSON for date:', state.selectedDate.value)
-                    const exportResponse = await api.exportOvertimeJson(state.selectedDate.value)
-                    console.log('Export response:', exportResponse.data)
+                    await api.exportOvertimeJson(state.selectedDate.value)
                 } catch (exportError) {
                     console.error('Failed to export JSON:', exportError)
                 }
 
             } catch (error) {
                 if (error.response?.status === 409 && retries > 0) {
-                    console.log(`Request in queue, retrying... (${retries} attempts left)`)
                     await new Promise(resolve => setTimeout(resolve, 1000))
                     return submitOvertimeRequest(validateForm, totalHours, totalBreakHours, retries - 1)
                 }
@@ -148,7 +140,6 @@ export function useOvertimeApi(state, computed) {
                     state.timeBreakEnd.value = request.break_end.slice(0, 5)
                 }
                 state.overtimeReason.value = request.reason
-                console.log('Existing overtime request loaded')
             } else {
                 resetForm(false)
             }
@@ -211,11 +202,21 @@ export function useOvertimeApi(state, computed) {
         }
     }
 
+    const handleExport = async () => {
+        try {
+            const response = await api.exportFiles(state.selectedDate.value);
+            console.log('Files exported:', response.data);
+        } catch (error) {
+            console.error('Export failed:', error);
+        }
+    };
+
     return {
         loadInitialData,
         submitOvertimeRequest,
         checkExistingRequest,
         deleteOvertimeRequest,
+        handleExport,
         resetForm
     }
 }

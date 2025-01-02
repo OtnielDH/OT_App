@@ -96,7 +96,6 @@ class OvertimeRequestViewSet(viewsets.ModelViewSet):
             
         return queryset
 
-
     @swagger_auto_schema(
         operation_summary="Create overtime request",
         request_body=OvertimeSerializer,
@@ -214,3 +213,20 @@ class OvertimeRequestViewSet(viewsets.ModelViewSet):
                 'status': 'error',
                 'message': str(e)
             }, status=400)
+        
+    @action(detail=False, methods=['post'])
+    def export_files(self, request):
+        try:
+            date = datetime.strptime(request.data['date'], '%Y-%m-%d').date()
+            
+            # Export files - will save JSON and Excel in same folder
+            export_result = OvertimeRequest.export_daily_json(date)
+            
+            return Response({
+                'status': 'success',
+                'message': 'Files exported successfully',
+                'files': export_result if isinstance(export_result, dict) else {'json_file': export_result}
+            })
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)

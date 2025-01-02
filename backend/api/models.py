@@ -1,3 +1,4 @@
+import calendar
 from django.db import models
 from django.utils.timezone import now
 from django.utils import timezone
@@ -5,6 +6,7 @@ from django.conf import settings
 from django.db import transaction
 import json
 import os
+from .utils.excel_generator import ExcelGenerator
 
 
 class TimestampedModel(models.Model):
@@ -56,6 +58,19 @@ class OvertimeRequest(TimestampedModel):
     reason = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_weekend = models.BooleanField(default=False)
+    is_holiday = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate is_weekend based on request_date
+        if self.request_date:
+            self.is_weekend = calendar.weekday(
+                self.request_date.year, 
+                self.request_date.month, 
+                self.request_date.day
+            ) >= 5  # 5=Saturday, 6=Sunday
+        super().save(*args, **kwargs)
+
 
     class Meta:
         ordering = ['-created_at']
@@ -67,6 +82,7 @@ class OvertimeRequest(TimestampedModel):
     def export_daily_json(cls, date):
         try:
             export_dir = "D:/Project/VSCode/OT_app/data"
+            print(f"Starting export for date: {date}")
             os.makedirs(export_dir, exist_ok=True)
             filename = date.strftime('%Y%m%d.json')
             filepath = os.path.join(export_dir, filename)
@@ -92,6 +108,8 @@ class OvertimeRequest(TimestampedModel):
                 "break_end": request.break_end.strftime('%H:%M') if request.break_end else None,
                 "break_hours": str(request.break_hours) if request.break_hours else None,
                 "reason": request.reason,
+                "is_weekend": request.is_weekend,
+                "is_holiday": request.is_holiday,
                 "created_at": timezone.localtime(request.created_at).strftime('%Y-%m-%d %H:%M:%S'),
                 "updated_at": timezone.localtime(request.updated_at).strftime('%Y-%m-%d %H:%M:%S')
             } for request in daily_requests]
@@ -100,7 +118,24 @@ class OvertimeRequest(TimestampedModel):
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)
 
+            # Generate Excel after JSON
+            if daily_requests:
+                excel_path = os.path.join(export_dir, 'excel')
+                os.makedirs(excel_path, exist_ok=True)
+                
+                excel_file, summary_file = ExcelGenerator.generate_excel_files(
+                    export_data,
+                    date
+                )
+                
+                return {
+                    'json_file': filepath,
+                    'excel_file': excel_file,
+                    'summary_file': summary_file
+                }
+
             return filepath
         except Exception as e:
-            print(f"Error exporting JSON: {str(e)}")
+            print(f"Error exporting files: {str(e)}")
             raise
+            

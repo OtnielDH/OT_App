@@ -37,6 +37,10 @@ export default {
         return apiClient.delete(`/api/overtime-requests/${id}/`)
     },
 
+    exportFiles(date) {
+        return apiClient.post('/api/overtime-requests/export_files/', { date });
+    },
+
     exportOvertimeJson(date) {
         console.log('Exporting JSON for date:', date);
         return apiClient.post('/api/overtime-requests/export_json/', { date })
