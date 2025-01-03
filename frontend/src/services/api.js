@@ -34,7 +34,8 @@ export default {
     },
 
     deleteOvertimeRequest(id) {
-        return apiClient.delete(`/api/overtime-requests/${id}/`)
+        if (!id) throw new Error('ID is required for deletion');
+        return apiClient.delete(`/api/overtime-requests/${id}/`);
     },
 
     exportFiles(date) {
@@ -43,15 +44,20 @@ export default {
 
     exportOvertimeJson(date) {
         console.log('Exporting JSON for date:', date);
-        return apiClient.post('/api/overtime-requests/export_json/', { date })
-            .catch(error => {
-                console.error('Export JSON error:', error.response?.data || error);
-                throw error;
-            });
+        return apiClient.post('/api/overtime-requests/export_json/',
+            { date: date.toString() }  // Ensure date is converted to string
+        ).catch(error => {
+            console.error('Export JSON error:', error.response?.data || error);
+            throw error;
+        });
     },
 
     async checkExistingOvertimeRequest(employeeId, date) {
-        return apiClient.get(`/api/overtime-requests/?employee=${employeeId}&request_date=${date}`)
-    }
+        const params = new URLSearchParams();
+        if (employeeId) params.append('employee', employeeId);
+        if (date) params.append('request_date', date);
+
+        return apiClient.get(`/api/overtime-requests/?${params.toString()}`);
+    },
 
 }

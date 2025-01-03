@@ -61,6 +61,7 @@ export function useOvertimeApi(state, computed) {
                 request_date: state.selectedDate.value,
                 time_start: formatTime(state.timeStart.value),
                 time_end: formatTime(state.timeEnd.value),
+                is_holiday: state.isHoliday.value,
                 has_break: Boolean(state.hasBreak.value),
                 break_start: state.hasBreak.value ? formatTime(state.timeBreakStart.value) : null,
                 break_end: state.hasBreak.value ? formatTime(state.timeBreakEnd.value) : null,
@@ -140,6 +141,7 @@ export function useOvertimeApi(state, computed) {
                     state.timeBreakEnd.value = request.break_end.slice(0, 5)
                 }
                 state.overtimeReason.value = request.reason
+                state.isHoliday.value = request.is_holiday
             } else {
                 resetForm(false)
             }
@@ -162,41 +164,31 @@ export function useOvertimeApi(state, computed) {
                 try {
                     const existingId = existingRequest.data[0].id
                     await api.deleteOvertimeRequest(existingId)
-                    console.log('Overtime request deleted successfully')
 
-                    // Export JSON after successful deletion
-                    try {
-                        console.log('Exporting JSON for date:', state.selectedDate.value)
-                        const exportResponse = await api.exportOvertimeJson(state.selectedDate.value)
-                        console.log('Export response:', exportResponse.data)
-                    } catch (exportError) {
-                        console.error('Failed to export JSON:', exportError)
+                    // Check if any requests remain for this date
+                    const remainingRequests = await api.checkExistingOvertimeRequest(
+                        null,  // Check all employees
+                        state.selectedDate.value
+                    )
+
+                    if (remainingRequests.data.length > 0) {
+                        // If requests remain, regenerate files
+                        await api.exportOvertimeJson(state.selectedDate.value)
                     }
 
-                    resetForm(false)  // Keep employee selected
+                    console.log('Overtime request and files updated successfully')
+                    resetForm(false)
                     state.hasExistingRequest.value = false
                 } catch (error) {
                     if (error.response?.status === 409 && retries > 0) {
-                        console.log(`Delete in queue, retrying... (${retries} attempts left)`)
                         await new Promise(resolve => setTimeout(resolve, 1000))
                         return deleteOvertimeRequest(retries - 1)
                     }
                     throw error
                 }
-            } else {
-                console.error('No existing request found to delete')
             }
         } catch (error) {
-            console.error('Failed to delete request:', error)
-            const errorMessage = error.response?.data || error.message
-            if (typeof errorMessage === 'object') {
-                const messages = Object.entries(errorMessage)
-                    .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
-                    .join('\n')
-                console.error(messages)
-            } else {
-                console.error(errorMessage)
-            }
+            console.error('Delete failed:', error)
         } finally {
             state.deleting.value = false
         }

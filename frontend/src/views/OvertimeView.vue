@@ -9,7 +9,7 @@
 
             <ProjectSelect :projects="projects" v-model:selected-project="selectedProjects" />
 
-            <DateSelect v-model:selected-date="selectedDate" />
+            <DateSelect v-model:selected-date="selectedDate" v-model:is-holiday="isHoliday" />
 
             <TimeSection v-model:time-start="timeStart" v-model:time-end="timeEnd" :total-hours="totalHours" />
 
@@ -55,6 +55,7 @@ const {
     totalBreakHours,
     overtimeReason,
     submitting,
+    isHoliday,
     loadInitialData,
     submitOvertimeRequest,
     deleting,

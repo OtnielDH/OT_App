@@ -1,0 +1,36 @@
+[
+  {
+    "employee_id": "MW2101784",
+    "employee_name": "Laurence Hasan",
+    "project": "Callix",
+    "time_start": "17:20",
+    "time_end": "18:20",
+    "total_hours": "1.00",
+    "has_break": false,
+    "break_start": null,
+    "break_end": null,
+    "break_hours": null,
+    "reason": "test",
+    "is_weekend": false,
+    "is_holiday": false,
+    "created_at": "2025-01-03 20:44:56",
+    "updated_at": "2025-01-03 20:45:07"
+  },
+  {
+    "employee_id": "MW2202304",
+    "employee_name": "Jeremy Christoputra",
+    "project": "BARCA",
+    "time_start": "17:20",
+    "time_end": "18:20",
+    "total_hours": "1.00",
+    "has_break": true,
+    "break_start": "17:50",
+    "break_end": "18:20",
+    "break_hours": "0.50",
+    "reason": "test",
+    "is_weekend": false,
+    "is_holiday": false,
+    "created_at": "2025-01-03 20:45:24",
+    "updated_at": "2025-01-03 20:48:09"
+  }
+]

@@ -16,7 +16,7 @@ export function useOvertimeState() {
     const submitting = ref(false)
     const deleting = ref(false)
     const hasExistingRequest = ref(false)
-
+    const isHoliday = ref(false)
     const today = new Date().toISOString().split('T')[0]
     const selectedDate = ref(today)
 
@@ -37,6 +37,7 @@ export function useOvertimeState() {
         deleting,
         hasExistingRequest,
         selectedDate,
+        isHoliday,
         today
     }
 }

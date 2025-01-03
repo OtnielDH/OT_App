@@ -71,14 +71,14 @@ class OvertimeRequest(TimestampedModel):
             ) >= 5  # 5=Saturday, 6=Sunday
         super().save(*args, **kwargs)
 
-
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.employee.name} - {self.request_date}"
     
-    @classmethod
+    @classmethod  # Add classmethod decorator
+
     def export_daily_json(cls, date):
         try:
             export_dir = "D:/Project/VSCode/OT_app/data"
@@ -94,6 +94,13 @@ class OvertimeRequest(TimestampedModel):
                     .filter(request_date=date)
                     .select_related('employee', 'project')
                     .order_by('time_start'))
+            
+            # If no data exists, delete the JSON file if it exists
+            if not daily_requests:
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    print(f"Deleted empty JSON file for date {date}")
+                return None
             
             # Process data outside transaction
             export_data = [{
@@ -118,24 +125,58 @@ class OvertimeRequest(TimestampedModel):
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)
 
-            # Generate Excel after JSON
-            if daily_requests:
-                excel_path = os.path.join(export_dir, 'excel')
-                os.makedirs(excel_path, exist_ok=True)
-                
-                excel_file, summary_file = ExcelGenerator.generate_excel_files(
-                    export_data,
-                    date
-                )
-                
-                return {
-                    'json_file': filepath,
-                    'excel_file': excel_file,
-                    'summary_file': summary_file
-                }
-
-            return filepath
+            return export_data
         except Exception as e:
             print(f"Error exporting files: {str(e)}")
             raise
+        
+    @classmethod
+    def _delete_files(cls, date):
+        """Delete JSON and Excel files for the date"""
+        try:
+            # Delete JSON
+            json_file = os.path.join("D:/Project/VSCode/OT_app/data", f"{date.strftime('%Y%m%d')}.json")
+            if os.path.exists(json_file):
+                os.remove(json_file)
             
+            # Delete Excel files
+            excel_dir = "D:/Project/VSCode/OT_app/data/excel"
+            excel_file = os.path.join(excel_dir, f"{date.strftime('%Y%m%d')}OT.xlsx")
+            summary_file = os.path.join(excel_dir, f"{date.strftime('%Y%m%d')}OTSummary.xlsx")
+            
+            if os.path.exists(excel_file):
+                os.remove(excel_file)
+            if os.path.exists(summary_file):
+                os.remove(summary_file)
+                
+            print(f"Files deleted for date {date}")
+        except Exception as e:
+            print(f"Error deleting files: {str(e)}")
+
+    def delete(self, *args, **kwargs):
+        date = self.request_date
+        result = super().delete(*args, **kwargs)
+        try:
+            daily_requests = self.__class__.objects.filter(request_date=date)
+            if daily_requests.exists():
+                # Generate new files with remaining data
+                export_data = self.__class__.export_daily_json(date)
+                ExcelGenerator.generate_excel_files(export_data, date)
+                print(f"Files regenerated for date {date}")
+            else:
+                # Delete all files if no requests remain
+                self.__class__._delete_files(date)
+                print(f"No requests remain for date {date}, files deleted")
+        except Exception as e:
+            print(f"Error handling files after deletion: {str(e)}")
+        return result
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        try:
+            # Generate files after save
+            export_data = self.__class__.export_daily_json(self.request_date)
+            ExcelGenerator.generate_excel_files(export_data, self.request_date)
+            print(f"Files generated for date {self.request_date}")
+        except Exception as e:
+            print(f"Error generating files after save: {str(e)}")
